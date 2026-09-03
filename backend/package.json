@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "node --watch --env-file=.env src/server.js",
     "start": "node --env-file=.env src/server.js",
-    "test": "node --test"
+    "test": "node --env-file=.env --test"
   },
   "keywords": [],
   "author": "Babajide Ibiayo",
