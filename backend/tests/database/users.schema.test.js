@@ -39,3 +39,77 @@ test('users table accepts a valid user', async () => {
     }
   }
 });
+
+test('users table rejects uppercase email addresses', async () => {
+  const email = `Test-${Date.now()}@example.com`;
+
+  await assert.rejects(
+    pool.query(
+      `
+        INSERT INTO users (
+          first_name,
+          last_name,
+          email,
+          password_hash,
+          role
+        )
+        VALUES ($1, $2, $3, $4, $5)
+      `,
+      ['Test', 'Uppercase', email, 'test_hash_only', 'REQUESTER']
+    ),
+    (error) => {
+      assert.equal(error.code, '23514');
+      assert.equal(error.constraint, 'users_email_lowercase_check');
+      return true;
+    }
+  );
+});
+
+test('users table rejects duplicate email addresses', async () => {
+  const email = `duplicate-${Date.now()}@example.com`;
+  let userId;
+
+  try {
+    const firstResult = await pool.query(
+      `
+        INSERT INTO users (
+          first_name,
+          last_name,
+          email,
+          password_hash,
+          role
+        )
+        VALUES ($1, $2, $3, $4, $5)
+        RETURNING id
+      `,
+      ['First', 'User', email, 'test_hash_only', 'REQUESTER']
+    );
+
+    userId = firstResult.rows[0].id;
+
+    await assert.rejects(
+      pool.query(
+        `
+          INSERT INTO users (
+            first_name,
+            last_name,
+            email,
+            password_hash,
+            role
+          )
+          VALUES ($1, $2, $3, $4, $5)
+        `,
+        ['Second', 'User', email, 'test_hash_only', 'REQUESTER']
+      ),
+      (error) => {
+        assert.equal(error.code, '23505');
+        assert.equal(error.constraint, 'users_email_unique_idx');
+        return true;
+      }
+    );
+  } finally {
+    if (userId) {
+      await pool.query('DELETE FROM users WHERE id = $1', [userId]);
+    }
+  }
+});
