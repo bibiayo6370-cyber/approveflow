@@ -2,6 +2,7 @@ import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import pool from '../config/database.js';
+import { verifyTestMigrationTarget } from './migration-safety.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -70,6 +71,10 @@ async function runMigration(migrationName, migrationSql) {
 
 async function main() {
   try {
+    if (process.argv.includes('--test')) {
+      await verifyTestMigrationTarget(pool);
+    }
+
     await ensureMigrationTable();
 
     const migrationFiles = await getMigrationFiles();

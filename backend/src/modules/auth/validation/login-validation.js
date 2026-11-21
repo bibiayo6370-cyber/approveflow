@@ -1,0 +1,2 @@
+import { validationError } from '../../../shared/errors/app-error.js';
+export function validateLoginInput(input) { const email = typeof input?.email === 'string' ? input.email.trim().toLowerCase() : ''; const password = typeof input?.password === 'string' ? input.password : ''; if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !password) throw validationError('Email and password are required.'); return { email, password }; }

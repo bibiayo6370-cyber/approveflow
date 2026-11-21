@@ -5,7 +5,10 @@
   "scripts": {
     "dev": "node --watch --env-file=.env src/server.js",
     "start": "node --env-file=.env src/server.js",
-    "test": "node --env-file=.env --test"
+    "migrate": "node --env-file=.env src/database/migrate.js",
+    "migrate:test": "node --env-file=.env.test src/database/migrate.js --test",
+    "seed:demo": "node --env-file=.env src/modules/auth/scripts/seed-demo-accounts.js",
+    "test": "node --env-file=.env.test --test --test-concurrency=1"
   },
   "keywords": [],
   "author": "Babajide Ibiayo",
@@ -13,7 +16,9 @@
   "type": "module",
   "description": "A business process approval application",
   "dependencies": {
+    "bcryptjs": "^3.0.3",
     "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.3",
     "pg": "^8.23.0"
   }
 }

@@ -1,0 +1,3 @@
+import { AppError } from '../errors/app-error.js';
+export function notFoundHandler(_req, res) { res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Resource not found.' } }); }
+export function errorHandler(error, _req, res, _next) { if (error instanceof AppError) return res.status(error.status).json({ error: { code: error.code, message: error.expose ? error.message : 'An unexpected error occurred.' } }); console.error('Unhandled application error', { name: error.name, message: error.message }); return res.status(500).json({ error: { code: 'INTERNAL_ERROR', message: 'An unexpected error occurred.' } }); }
