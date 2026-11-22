@@ -35,3 +35,7 @@ Sprint 1 will introduce the minimum database schema required for:
 - Request submission
 
 Additional domain tables will be introduced through subsequent migrations as functionality enters scope.
+
+## G2 request events
+
+`003_create_request_events.sql` introduces the append-only request event ledger. It records request creation, submission, approval, and rejection with the acting user and optional rejection comment. An update/delete trigger protects event history from mutation.
