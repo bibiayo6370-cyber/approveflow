@@ -1,0 +1,4 @@
+import test from 'node:test'; import assert from 'node:assert/strict'; import { assertHostedTarget, verifyHostedTarget } from '../src/database/hosted-safety.js';
+const valid={NODE_ENV:'production',CONFIRM_HOSTED_MIGRATION:'true',DATABASE_URL:'postgresql://user:pass@host.example/approveflow_render',HOSTED_DATABASE_NAME:'approveflow_render'};
+test('hosted guard rejects missing confirmation and conflicting local configuration before SQL',()=>{assert.throws(()=>assertHostedTarget({...valid,CONFIRM_HOSTED_MIGRATION:'false'},'CONFIRM_HOSTED_MIGRATION'));assert.throws(()=>assertHostedTarget({...valid,DB_NAME:'approveflow'},'CONFIRM_HOSTED_MIGRATION'));});
+test('hosted guard verifies connected target identity',async()=>{await verifyHostedTarget({query:async()=>({rows:[{database_name:'approveflow_render'}]})},valid);await assert.rejects(()=>verifyHostedTarget({query:async()=>({rows:[{database_name:'approveflow'}]})},valid));});

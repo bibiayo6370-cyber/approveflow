@@ -3,12 +3,18 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import pool from '../config/database.js';
 import { verifyTestMigrationTarget } from './migration-safety.js';
+import { assertHostedTarget, verifyHostedTarget } from './hosted-safety.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const migrationsDirectory = path.resolve(__dirname, '../../database/migrations');
 
 const migrationsFilePattern = /^\d{3}_[a-z0-9_]+\.sql$/;
+
+export async function prepareHostedMigration(database, environment = process.env) {
+  assertHostedTarget(environment, 'CONFIRM_HOSTED_MIGRATION');
+  await verifyHostedTarget(database, environment);
+}
 
 async function ensureMigrationTable() {
   await pool.query(`
@@ -74,6 +80,9 @@ async function main() {
     if (process.argv.includes('--test')) {
       await verifyTestMigrationTarget(pool);
     }
+    if (process.argv.includes('--hosted')) {
+      await prepareHostedMigration(pool, process.env);
+    }
 
     await ensureMigrationTable();
 
@@ -109,4 +118,4 @@ async function main() {
   }
 }
 
-main();
+if (process.argv[1]?.endsWith('migrate.js')) main();
