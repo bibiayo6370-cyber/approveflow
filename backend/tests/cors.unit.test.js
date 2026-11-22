@@ -1,0 +1,8 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { cors } from '../src/shared/middleware/cors.js';
+
+function run(headers = {}, method = 'GET') { const result = { headers: {}, status: undefined, next: false }; cors({ method, get: (name) => headers[name.toLowerCase()] }, { set: (name, value) => { result.headers[name] = value; }, sendStatus: (status) => { result.status = status; } }, () => { result.next = true; }); return result; }
+test('allows only exact configured origins', () => { process.env.CORS_ALLOWED_ORIGINS = 'http://localhost:5173'; assert.equal(run({ origin: 'http://localhost:5173' }).headers['Access-Control-Allow-Origin'], 'http://localhost:5173'); assert.equal(run({ origin: 'http://localhost:5173.evil' }).headers['Access-Control-Allow-Origin'], undefined); delete process.env.CORS_ALLOWED_ORIGINS; });
+test('allows an approved preflight with approved headers and method', () => { const result = run({ origin: 'http://localhost:5173', 'access-control-request-method': 'POST', 'access-control-request-headers': 'authorization, content-type' }, 'OPTIONS'); assert.equal(result.status, 204); assert.equal(result.headers['Access-Control-Allow-Headers'], 'Authorization, Content-Type'); });
+test('rejects disallowed origins, methods, and request headers without wildcard headers', () => { assert.equal(run({ origin: 'https://evil.example', 'access-control-request-method': 'POST' }, 'OPTIONS').status, 403); assert.equal(run({ origin: 'http://localhost:5173', 'access-control-request-method': 'DELETE' }, 'OPTIONS').status, 403); assert.equal(run({ origin: 'http://localhost:5173', 'access-control-request-method': 'POST', 'access-control-request-headers': 'x-api-key' }, 'OPTIONS').status, 403); });
