@@ -1,0 +1,108 @@
+name: ApproveFlow CI
+
+# Review gate only: no workflows for deployment, hosted seeding, or release.
+on:
+  pull_request:
+    branches: [develop, main]
+    types: [opened, synchronize, reopened, ready_for_review]
+  push:
+    branches: [develop, main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: approveflow-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  frontend:
+    name: Frontend tests and build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Checkout source (read-only)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Run Vitest tests
+        run: npm test
+
+      - name: TypeScript check and Vite production build
+        run: npm run build
+
+  backend:
+    name: Backend tests (isolated PostgreSQL 17)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      CI: 'true'
+      NODE_ENV: test
+      DB_HOST: 127.0.0.1
+      DB_PORT: '5432'
+      DB_NAME: approveflow_test
+      DB_USER: approveflow_ci
+      DB_PASSWORD: ci_only_ephemeral_pg_password
+      JWT_SECRET: approveflow_ci_ephemeral_jwt_secret_for_testing_only
+      JWT_EXPIRES_IN: 1h
+      DB_SSL: 'false'
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: approveflow_test
+          POSTGRES_USER: approveflow_ci
+          POSTGRES_PASSWORD: ci_only_ephemeral_pg_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U approveflow_ci -d approveflow_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+
+    steps:
+      - name: Checkout source (read-only)
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Create required empty .env.test placeholder
+        # The repository's npm scripts use --env-file=.env.test.
+        # CI-only values come from this job's environment; no hosted credentials.
+        run: printf '# CI values are supplied by the job environment\n' > .env.test
+
+      - name: Migrate only the isolated approveflow_test database
+        # migrate:test calls verifyTestMigrationTarget() before migration SQL.
+        run: npm run migrate:test
+
+      - name: Run backend unit and database integration tests sequentially
+        # npm test already includes --test-concurrency=1 for shared test DB safety.
+        run: npm test
