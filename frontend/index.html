@@ -1,1 +1,20 @@
-<div id="root"></div><script type="module" src="/src/main.tsx"></script>
+<!doctype html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#F5F9FC" />
+    <meta name="description" content="ApproveFlow helps teams submit, review and track structured business approvals." />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <title>ApproveFlow — Better business approvals</title>
+    <script>
+      // Apply the previous explicit preference before CSS / React paint.
+      try {
+        var mode = localStorage.getItem('approveflow-theme') === 'dark' ? 'dark' : 'light';
+        document.documentElement.dataset.theme = mode;
+        document.documentElement.style.colorScheme = mode;
+      } catch (_) { document.documentElement.dataset.theme = 'light'; }
+    </script>
+  </head>
+  <body><div id="root"></div><script type="module" src="/src/main.tsx"></script></body>
+</html>
