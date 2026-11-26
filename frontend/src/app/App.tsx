@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { Link, Navigate, Route, Routes, useNavigate, useParams } from 'react-router-dom';
+import { useEffect, useRef, useState } from 'react';
+import { Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { api } from '../lib/api';
 import type { ApprovalRequest, RequestEvent, Session, User } from '../types/api';
 import { LoginForm } from '../features/auth/LoginForm';
@@ -8,6 +8,10 @@ import { RejectionControl } from '../features/approver/RejectionControl';
 import type { LoginInput, RequestInput } from '../lib/validation';
 import { AppShell, PublicShell } from '../shared/layout/AppShell';
 import { ThemeProvider } from '../shared/theme/ThemeProvider';
+import { Landing } from '../features/landing/Landing';
+import { Preview, ProductTour } from '../features/preview/Preview';
+import { DashboardContent } from '../features/dashboard/DashboardContent';
+import { Metrics } from '../features/dashboard/Metrics';
 
 const sessionKey = 'approveflow-session';
 const money = (value: string) => new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(Number(value));
@@ -24,6 +28,7 @@ export function App() {
 function AppRoutes() {
   const [session, setSession] = useState<Session | null>(readSession);
   const navigate = useNavigate();
+  const location = useLocation();
   const logout = () => { sessionStorage.removeItem(sessionKey); setSession(null); navigate('/login'); };
 
   useEffect(() => {
@@ -34,17 +39,25 @@ function AppRoutes() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  if (location.pathname === '/') return <PublicShell><Landing /></PublicShell>;
   if (!session) return <PublicShell><Routes>
+    <Route path="/" element={<Landing />} />
     <Route path="/login" element={<Login onSession={setSession} />} />
-    <Route path="*" element={<Navigate to="/login" />} />
+    <Route path="*" element={<Navigate to="/login" replace />} />
   </Routes></PublicShell>;
 
   return <AppShell role={session.user.role} userEmail={session.user.email} onLogout={logout}>
     <Routes>
-      <Route path="/" element={<Dashboard session={session} />} />
+      <Route path="/" element={<Navigate to="/dashboard" replace />} />
+      <Route path="/login" element={<Navigate to="/dashboard" replace />} />
+      <Route path="/dashboard" element={<Dashboard session={session} />} />
+      <Route path="/requests" element={<Dashboard session={session} management />} />
+      <Route path="/metrics" element={<Metrics />} />
+      <Route path="/preview/:id" element={<Preview />} />
+      <Route path="/tour" element={<ProductTour />} />
       {session.user.role === 'REQUESTER' && <Route path="/requests/new" element={<Create session={session} />} />}
       <Route path="/requests/:id" element={<Detail session={session} />} />
-      <Route path="*" element={<Navigate to="/" />} />
+      <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
   </AppShell>;
 }
@@ -66,29 +79,31 @@ function Login({ onSession }: { onSession: (value: Session) => void }) {
   </section>;
 }
 
-function Dashboard({ session }: { session: Session }) {
+function Dashboard({ session, management = false }: { session: Session; management?: boolean }) {
   const [items, setItems] = useState<ApprovalRequest[]>([]);
   const [error, setError] = useState('');
   const approver = session.user.role === 'APPROVER';
+  const [loading, setLoading] = useState(true);
+  const [decisionBusy, setDecisionBusy] = useState(false);
+  const decisionLock = useRef(false);
 
   useEffect(() => {
     api<{ requests: ApprovalRequest[] }>(approver ? '/api/requests/pending' : '/api/requests', {}, session.token)
       .then(({ requests }) => setItems(requests))
-      .catch(problem => setError(problem instanceof Error ? problem.message : 'Unable to load requests.'));
+      .catch(problem => setError(problem instanceof Error ? problem.message : 'Unable to load requests.'))
+      .finally(() => setLoading(false));
   }, [approver, session.token]);
 
-  return <section className="af-page-section">
-    <div className="title">
-      <div><span className="af-eyebrow">LIVE MVP WORKSPACE</span><h1>{approver ? 'Pending decisions' : 'My requests'}</h1>
-      <p className="af-muted">{approver ? 'Review and respond to requests that need your approval.' : 'Create, submit and track your business requests.'}</p></div>
-      {!approver && <Link className="button" to="/requests/new">Create request</Link>}
-    </div>
-    {error ? <p role="alert" className="af-message-error">{error}</p> : !items.length ? <p className="empty">No requests to display.</p> :
-      <div className="cards">{items.map(request => <Link className="card" key={request.id} to={`/requests/${request.id}`}>
-        <span className={`status ${request.status}`}>{request.status.replaceAll('_', ' ')}</span>
-        <h2>{request.title}</h2><p>{money(request.total_cost)}</p>
-      </Link>)}</div>}
-  </section>;
+  const decide = async (id:string, action:'approve'|'reject', comment?:string) => {
+    if (decisionLock.current) return;
+    decisionLock.current = true; setDecisionBusy(true);
+    try {
+      await api<{request:ApprovalRequest}>(`/api/requests/${id}/${action}`, {method:'POST',body:JSON.stringify(comment ? {comment} : {})}, session.token);
+      setItems(previous=>previous.filter(item=>item.id!==id)); setError('');
+    } catch(problem) { setError(problem instanceof Error ? problem.message : 'Unable to record decision.'); }
+    finally { decisionLock.current = false; setDecisionBusy(false); }
+  };
+  return <DashboardContent items={items} loading={loading} error={error} approver={approver} onDecision={decide} decisionBusy={decisionBusy} management={management}/>;
 }
 
 function Create({ session }: { session: Session }) {
@@ -100,7 +115,7 @@ function Create({ session }: { session: Session }) {
       navigate(`/requests/${request.id}`);
     } catch (problem) { setError(problem instanceof Error ? problem.message : 'Could not create draft.'); }
   };
-  return <section className="af-page-section"><span className="af-eyebrow">LIVE REQUEST</span><h1>Create request</h1><RequestForm onSubmit={submit} error={error} /></section>;
+  return <section className="af-page-section af-create-request"><span className="af-eyebrow">LIVE REQUEST</span><h1>Create request</h1><RequestForm onSubmit={submit} error={error} /></section>;
 }
 
 function Detail({ session }: { session: Session }) {
@@ -133,8 +148,9 @@ function Detail({ session }: { session: Session }) {
   return <section className="af-page-section af-detail-page">
     <span className={`status ${request.status}`}>{request.status}</span><h1>{request.title}</h1>
     <p className="af-muted">{request.description}</p>
+    <section className="af-surface request-details"><h2>Request details</h2><dl><div><dt>Category</dt><dd>{request.category}</dd></div><div><dt>Quantity</dt><dd>{request.quantity}</dd></div><div><dt>Unit cost</dt><dd>{money(request.unit_cost)}</dd></div><div><dt>Total</dt><dd>{money(request.total_cost)}</dd></div><div><dt>Required date</dt><dd>{request.required_date?.slice(0,10)}</dd></div><div><dt>Justification</dt><dd>{request.justification}</dd></div></dl></section>
     {session.user.role === 'REQUESTER' && request.status === 'DRAFT' && <button type="button" onClick={() => act('submit')}>Submit for approval</button>}
     {session.user.role === 'APPROVER' && request.status === 'PENDING_APPROVAL' && <RejectionControl approve={() => act('approve')} reject={comment => act('reject', comment)} />}
-    <section className="af-surface af-history"><h2>Activity history</h2><ol>{events.map(event => <li key={event.id}>{event.event_type} {event.comment && `— ${event.comment}`}</li>)}</ol></section>
+    <section className="af-surface af-history"><h2>Activity history</h2><ol>{events.map(event => <li key={event.id}>{event.event_type} {event.comment && `— ${event.comment}`}{event.created_at && <small className="event-meta">{new Date(event.created_at).toLocaleString('en-NG')} {event.actor_id && `· Actor ID: ${event.actor_id}`}</small>}</li>)}</ol></section>
   </section>;
 }

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { NavLink } from 'react-router-dom';
-import { ClipboardList, LayoutDashboard, LogOut, Menu, Plus, X } from 'lucide-react';
+import { Activity, BarChart3, ClipboardList, LayoutDashboard, LogOut, Menu, Plus, Settings, X } from 'lucide-react';
 import { ApproveFlowLogo } from '../brand/ApproveFlowLogo';
 import { ThemeToggle } from '../theme/ThemeToggle';
 import { CAPABILITIES } from '../../architecture/capabilities';
@@ -29,21 +29,25 @@ export function AppShell({ children, role, userEmail, onLogout }: {
       <NavLink to="/" className="af-brand-link" onClick={handleNavigate}><ApproveFlowLogo /></NavLink>
       <div className="af-sidebar-section-title">WORKSPACE</div>
       <nav className="af-nav-list" aria-label="Live workspace">
-        <NavLink to="/" end className={({ isActive }) => `af-nav-item ${isActive ? 'af-nav-active' : ''}`} onClick={handleNavigate}>
-          <LayoutDashboard size={19} aria-hidden="true" /><span>{isRequester ? 'My requests' : 'Pending decisions'}</span>
+        <NavLink to="/dashboard" end className={({ isActive }) => `af-nav-item ${isActive ? 'af-nav-active' : ''}`} onClick={handleNavigate}>
+          <LayoutDashboard size={19} aria-hidden="true" /><span>Dashboard</span>
         </NavLink>
+        <NavLink to="/requests" end className={({ isActive }) => `af-nav-item ${isActive ? 'af-nav-active' : ''}`} onClick={handleNavigate}><ClipboardList size={19} aria-hidden="true"/><span>{isRequester?'My Requests':'Approvals'}</span></NavLink>
         {isRequester && <NavLink to="/requests/new" className={({ isActive }) => `af-nav-item ${isActive ? 'af-nav-active' : ''}`} onClick={handleNavigate}>
           <Plus size={19} aria-hidden="true" /><span>Create request</span>
         </NavLink>}
+        <NavLink to="/preview/notifications" className={({ isActive }) => `af-nav-item ${isActive ? 'af-nav-active' : ''}`} onClick={handleNavigate}><Activity size={19} aria-hidden="true"/><span>Activity · preview</span></NavLink>
+        <NavLink to="/metrics" className={({ isActive }) => `af-nav-item ${isActive ? 'af-nav-active' : ''}`} onClick={handleNavigate}><BarChart3 size={19} aria-hidden="true"/><span>Metrics</span></NavLink>
+        <NavLink to="/preview/admin" className={({ isActive }) => `af-nav-item ${isActive ? 'af-nav-active' : ''}`} onClick={handleNavigate}><Settings size={19} aria-hidden="true"/><span>Settings · preview</span></NavLink>
       </nav>
       <div className="af-sidebar-section-title af-preview-title">PRODUCT VISION <span className="af-preview-pill">Preview</span></div>
       <div className="af-feature-preview-list" aria-label="Future features, not yet available in the live MVP">
-        {previewFeatures.map(feature => <div className="af-preview-item" key={feature.id} title={feature.description}>
+        {previewFeatures.map(feature => <NavLink to={`/preview/${feature.id}`} className="af-preview-item" key={feature.id} title={feature.description} onClick={handleNavigate}>
           <span className="af-preview-dot" aria-hidden="true" />{feature.label}
-        </div>)}
+        </NavLink>)}
       </div>
       <div className="af-sidebar-spacer" />
-      <div className="af-sidebar-footnote">Interactive product previews are being prepared. Live request actions remain connected to the real API.</div>
+      <div className="af-sidebar-footnote">Preview modules use sample data. Live request actions connect to the real API.</div>
     </aside>
     <div className="af-main-area">
       <div className="af-topbar">
@@ -61,7 +65,7 @@ export function AppShell({ children, role, userEmail, onLogout }: {
 
 export function PublicShell({ children }: { children: ReactNode }) {
   return <div className="af-public-shell">
-    <header className="af-public-header"><ApproveFlowLogo /><ThemeToggle /></header>
+    <header className="af-public-header"><NavLink to="/" className="af-brand-link"><ApproveFlowLogo /></NavLink><ThemeToggle /></header>
     <main className="af-public-main" id="main-content">{children}</main>
     <footer className="af-public-footer">ApproveFlow · Structured approvals, better decisions.</footer>
   </div>;

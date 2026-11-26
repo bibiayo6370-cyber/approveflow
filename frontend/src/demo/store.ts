@@ -27,6 +27,12 @@ export class DemoStore {
     this.publish({ ...this.data, finance: this.data.finance.map(n => n.id === id ? { ...n, status: 'PROCESSED' } : n) });
     return true;
   }
+  decideRequest(id: string, status: 'APPROVED' | 'REJECTED') {
+    const record = this.data.requests.find(item => item.id === id);
+    if (!id.startsWith('demo-') || !record || record.status !== 'PENDING_APPROVAL') return false;
+    this.publish({ ...this.data, requests: this.data.requests.map(item => item.id === id ? { ...item, status } : item) });
+    return true;
+  }
   reset() { this.publish(structuredClone(DEMO_SEED)); }
 }
 
