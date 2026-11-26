@@ -83,6 +83,17 @@ test('requires a rejection comment and persists it', async () => {
   const events = await (await api(`/api/requests/${draft.id}/history`, requester)).json(); assert.equal(events.events.at(-1).comment, 'Budget unavailable');
 });
 
+test('lists only the signed-in approver’s recorded decisions and denies requesters', async () => {
+  const first = await create(); await submit(first.id); await api(`/api/requests/${first.id}/approve`, approver, { method: 'POST', body: '{}' });
+  const second = await create(); await submit(second.id); await api(`/api/requests/${second.id}/reject`, approver, { method: 'POST', body: JSON.stringify({ comment: 'Revise quantity' }) });
+  const other = await create(); await submit(other.id); await api(`/api/requests/${other.id}/approve`, secondApprover, { method: 'POST', body: '{}' });
+  const response = await api('/api/requests/decisions', approver); assert.equal(response.status, 200); const { decisions } = await response.json();
+  assert.ok(decisions.some(d => d.id === first.id && d.event_type === 'REQUEST_APPROVED' && d.decided_at));
+  assert.ok(decisions.some(d => d.id === second.id && d.event_type === 'REQUEST_REJECTED' && d.comment === 'Revise quantity'));
+  assert.ok(!decisions.some(d => d.id === other.id));
+  assert.equal((await api('/api/requests/decisions', requester)).status, 403);
+});
+
 test('rolls back a transition if its event cannot be inserted', async () => {
   const draft = await create(); await submit(draft.id); await assert.rejects(transition({ requestId: draft.id, actorId: approver.id, fromStatus: 'PENDING_APPROVAL', toStatus: 'APPROVED', eventType: 'INVALID_EVENT' })); const request = await (await api(`/api/requests/${draft.id}`, approver)).json(); assert.equal(request.request.status, 'PENDING_APPROVAL');
 });
