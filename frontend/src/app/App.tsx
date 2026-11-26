@@ -80,6 +80,7 @@ function Login({ onSession }: { onSession: (value: Session) => void }) {
 }
 
 function Dashboard({ session, management = false }: { session: Session; management?: boolean }) {
+  const navigate = useNavigate();
   const [items, setItems] = useState<ApprovalRequest[]>([]);
   const [error, setError] = useState('');
   const approver = session.user.role === 'APPROVER';
@@ -100,6 +101,7 @@ function Dashboard({ session, management = false }: { session: Session; manageme
     try {
       await api<{request:ApprovalRequest}>(`/api/requests/${id}/${action}`, {method:'POST',body:JSON.stringify(comment ? {comment} : {})}, session.token);
       setItems(previous=>previous.filter(item=>item.id!==id)); setError('');
+      navigate(`/requests/${id}`);
     } catch(problem) { setError(problem instanceof Error ? problem.message : 'Unable to record decision.'); }
     finally { decisionLock.current = false; setDecisionBusy(false); }
   };
