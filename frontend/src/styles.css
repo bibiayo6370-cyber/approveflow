@@ -218,6 +218,9 @@ p { line-height: 1.6; }
 .request-details dt { color: var(--af-muted); font-size: .8rem; }.request-details dd { margin: .3rem 0 0; overflow-wrap:anywhere; }
 .preview-page select { color: var(--af-ink); background: var(--af-surface); border: 1px solid var(--af-border); border-radius: 8px; padding: .5rem; }
 .approved-request-list { margin-top: 1rem; }
+.decision-filters { display: flex; flex-wrap: wrap; gap: 1rem; margin-bottom: 1rem; }
+.decision-filters label { display: grid; gap: .4rem; font-size: .85rem; font-weight: 650; }
+.decision-filters input, .decision-filters select { min-height: 44px; border: 1px solid var(--af-border); border-radius: 8px; padding: .55rem .7rem; color: var(--af-ink); background: var(--af-surface-soft); }
 .metrics-breakdown { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
 @media (max-width: 900px) { .metrics-breakdown { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 900px) { .metrics-page .demo-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); } }

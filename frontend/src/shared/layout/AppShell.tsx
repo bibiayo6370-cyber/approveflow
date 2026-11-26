@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Activity, BarChart3, ClipboardList, LayoutDashboard, LogOut, Menu, Plus, Settings, X } from 'lucide-react';
+import { Activity, BarChart3, ClipboardList, History, LayoutDashboard, LogOut, Menu, Plus, Settings, X } from 'lucide-react';
 import { ApproveFlowLogo } from '../brand/ApproveFlowLogo';
 import { ThemeToggle } from '../theme/ThemeToggle';
 import { CAPABILITIES } from '../../architecture/capabilities';
@@ -33,6 +33,7 @@ export function AppShell({ children, role, userEmail, onLogout }: {
           <LayoutDashboard size={19} aria-hidden="true" /><span>Dashboard</span>
         </NavLink>
         <NavLink to="/requests" end className={({ isActive }) => `af-nav-item ${isActive ? 'af-nav-active' : ''}`} onClick={handleNavigate}><ClipboardList size={19} aria-hidden="true"/><span>{isRequester?'My Requests':'Approvals'}</span></NavLink>
+        {!isRequester && <NavLink to="/decisions" className={({ isActive }) => `af-nav-item ${isActive ? 'af-nav-active' : ''}`} onClick={handleNavigate}><History size={19} aria-hidden="true"/><span>Decision history</span></NavLink>}
         {isRequester && <NavLink to="/requests/new" className={({ isActive }) => `af-nav-item ${isActive ? 'af-nav-active' : ''}`} onClick={handleNavigate}>
           <Plus size={19} aria-hidden="true" /><span>Create request</span>
         </NavLink>}
