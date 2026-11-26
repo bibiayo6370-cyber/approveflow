@@ -9,6 +9,7 @@ export async function createWithEvent(request, actorId) {
 }
 export async function listByOwner(ownerId) { return (await pool.query(`SELECT ${requestFields} FROM requests WHERE created_by=$1 ORDER BY created_at DESC`, [ownerId])).rows; }
 export async function listPending() { return (await pool.query(`SELECT ${requestFields} FROM requests WHERE status='PENDING_APPROVAL' ORDER BY created_at ASC`)).rows; }
+export async function listDecisionsByActor(actorId) { return (await pool.query(`SELECT r.id, r.title, r.category, r.total_cost, e.event_type, e.comment, e.created_at AS decided_at FROM request_events e JOIN requests r ON r.id=e.request_id WHERE e.actor_id=$1 AND e.event_type IN ('REQUEST_APPROVED','REQUEST_REJECTED') ORDER BY e.created_at DESC, e.id DESC`, [actorId])).rows; }
 export async function findById(id) { return (await pool.query(`SELECT ${requestFields} FROM requests WHERE id=$1`, [id])).rows[0] ?? null; }
 export async function history(requestId) { return (await pool.query(`SELECT ${eventFields} FROM request_events WHERE request_id=$1 ORDER BY created_at ASC, id ASC`, [requestId])).rows; }
 export async function transitionWithClient(client, { requestId, actorId, fromStatus, toStatus, eventType, comment, ownerOnly = false }) {

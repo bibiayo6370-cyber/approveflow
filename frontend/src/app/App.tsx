@@ -5,6 +5,7 @@ import type { ApprovalRequest, RequestEvent, Session, User } from '../types/api'
 import { LoginForm } from '../features/auth/LoginForm';
 import { RequestForm } from '../features/requests/RequestForm';
 import { RejectionControl } from '../features/approver/RejectionControl';
+import { DecisionHistory } from '../features/approver/DecisionHistory';
 import type { LoginInput, RequestInput } from '../lib/validation';
 import { AppShell, PublicShell } from '../shared/layout/AppShell';
 import { ThemeProvider } from '../shared/theme/ThemeProvider';
@@ -53,6 +54,7 @@ function AppRoutes() {
       <Route path="/dashboard" element={<Dashboard session={session} />} />
       <Route path="/requests" element={<Dashboard session={session} management />} />
       <Route path="/metrics" element={<Metrics />} />
+      {session.user.role === 'APPROVER' && <Route path="/decisions" element={<DecisionHistory token={session.token} />} />}
       <Route path="/preview/:id" element={<Preview />} />
       <Route path="/tour" element={<ProductTour />} />
       {session.user.role === 'REQUESTER' && <Route path="/requests/new" element={<Create session={session} />} />}
