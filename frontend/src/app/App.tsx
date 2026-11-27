@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { Link, Navigate, Route, Routes, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { api } from '../lib/api';
 import type { ApprovalRequest, RequestEvent, Session, User } from '../types/api';
 import { LoginForm } from '../features/auth/LoginForm';
@@ -151,9 +151,10 @@ function Detail({ session }: { session: Session }) {
   if (!request) return <p className="af-muted">Loading request…</p>;
   return <section className="af-page-section af-detail-page">
     <span className={`status ${request.status}`}>{request.status}</span><h1>{request.title}</h1>
+    {session.user.role === 'REQUESTER' && <nav className="request-navigation-actions" aria-label="Request actions"><Link className="af-icon-button" to="/requests">My Requests</Link><Link className="button" to="/requests/new">Create another request</Link></nav>}
     <p className="af-muted">{request.description}</p>
     <section className="af-surface request-details"><h2>Request details</h2><dl><div><dt>Category</dt><dd>{request.category}</dd></div><div><dt>Quantity</dt><dd>{request.quantity}</dd></div><div><dt>Unit cost</dt><dd>{money(request.unit_cost)}</dd></div><div><dt>Total</dt><dd>{money(request.total_cost)}</dd></div><div><dt>Required date</dt><dd>{request.required_date?.slice(0,10)}</dd></div><div><dt>Justification</dt><dd>{request.justification}</dd></div></dl></section>
-    {session.user.role === 'REQUESTER' && request.status === 'DRAFT' && <button type="button" onClick={() => act('submit')}>Submit for approval</button>}
+    {session.user.role === 'REQUESTER' && request.status === 'DRAFT' && <button className="request-submit-button" type="button" onClick={() => act('submit')}>Submit for approval</button>}
     {session.user.role === 'APPROVER' && request.status === 'PENDING_APPROVAL' && <RejectionControl approve={() => act('approve')} reject={comment => act('reject', comment)} />}
     <section className="af-surface af-history"><h2>Activity history</h2><ol>{events.map(event => <li key={event.id}>{event.event_type} {event.comment && `— ${event.comment}`}{event.created_at && <small className="event-meta">{new Date(event.created_at).toLocaleString('en-NG')} {event.actor_id && `· Actor ID: ${event.actor_id}`}</small>}</li>)}</ol></section>
   </section>;
